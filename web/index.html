@@ -320,6 +320,7 @@
     let writer = null;
     let reader = null;
     let readLoop = null;
+    let lineBuffer = "";
 
     const logEl = document.getElementById("log");
     const btnConnect = document.getElementById("btn-connect");
@@ -358,7 +359,10 @@
               const { value, done } = await reader.read();
               if (done) break;
               if (value) {
-                value.split(/\r?\n/).forEach(line => {
+                lineBuffer += value;
+                const lines = lineBuffer.split(/\r?\n/);
+                lineBuffer = lines.pop(); // keep incomplete trailing chunk
+                lines.forEach(line => {
                   if (!line.trim()) return;
                   const cls = line.startsWith("OK") ? "log-ok"
                             : line.startsWith("ERROR") ? "log-err"
@@ -435,6 +439,7 @@
         if (writer) { await writer.close(); writer = null; }
         if (port)   { await port.close();   port = null; }
       } catch (_) { /* ignore */ }
+      lineBuffer = "";
       log("Disconnected.", "log-inf");
       btnConnect.textContent = "Connect & Configure";
       btnConnect.onclick = connect;
