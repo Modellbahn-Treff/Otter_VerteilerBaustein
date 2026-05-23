@@ -197,6 +197,12 @@
       padding: 0 1rem;
     }
 
+    .log-controls {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+
     #log {
       font-family: "SF Mono", "Fira Mono", monospace;
       font-size: 0.8rem;
@@ -301,11 +307,14 @@
 
     <div class="btn-row">
       <button class="btn-primary" id="btn-connect">Connect &amp; Configure</button>
-      <button class="btn-secondary" id="btn-disconnect" class="hidden">Disconnect</button>
     </div>
   </div>
 
   <div id="log-wrap">
+    <div class="log-controls">
+      <button class="btn-secondary" id="btn-monitor">Connect Console</button>
+      <button class="btn-secondary hidden" id="btn-disconnect">Disconnect</button>
+    </div>
     <div id="log"></div>
   </div>
 
@@ -324,6 +333,7 @@
 
     const logEl = document.getElementById("log");
     const btnConnect = document.getElementById("btn-connect");
+    const btnMonitor = document.getElementById("btn-monitor");
     const btnDisconnect = document.getElementById("btn-disconnect");
 
     function log(text, cls = "") {
@@ -350,6 +360,7 @@
         log("Connected.", "log-inf");
         btnConnect.textContent = "Send Configuration";
         btnConnect.onclick = sendConfig;
+        btnMonitor.classList.add("hidden");
         btnDisconnect.classList.remove("hidden");
 
         // start read loop to show device output
@@ -445,9 +456,11 @@
       btnConnect.onclick = connect;
       btnConnect.disabled = false;
       btnDisconnect.classList.add("hidden");
+      btnMonitor.classList.remove("hidden");
     }
 
     btnConnect.onclick = connect;
+    btnMonitor.onclick = connect;
     btnDisconnect.onclick = disconnect;
   </script>
 </body>
