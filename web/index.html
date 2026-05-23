@@ -124,39 +124,33 @@
 
     input:focus { border-color: #1f6feb; }
 
-    details {
-      margin-top: 1rem;
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    .ip-preview {
+      margin-top: 0.85rem;
+      background: #0d1117;
       border: 1px solid #30363d;
       border-radius: 6px;
-      overflow: hidden;
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
     }
 
-    summary {
-      padding: 0.6rem 0.85rem;
-      cursor: pointer;
-      font-size: 0.85rem;
-      color: #8b949e;
-      user-select: none;
-      list-style: none;
+    .ip-preview-row {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.6rem;
+      font-family: "SF Mono", "Fira Mono", monospace;
+      font-size: 0.85rem;
     }
 
-    summary::before {
-      content: "▶";
-      font-size: 0.65rem;
-      transition: transform 0.15s;
+    .ip-label {
+      color: #8b949e;
+      min-width: 4.5rem;
     }
 
-    details[open] summary::before { transform: rotate(90deg); }
-
-    .advanced-inner {
-      padding: 0.85rem;
-      border-top: 1px solid #30363d;
-    }
-
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .ip-preview-row span:last-child { color: #58a6ff; }
 
     .btn-row {
       display: flex;
@@ -267,43 +261,42 @@
     <label for="password">WiFi Password</label>
     <input type="password" id="password" placeholder="••••••••" autocomplete="off">
 
-    <details id="advanced">
-      <summary>Advanced settings</summary>
-      <div class="advanced-inner">
-        <div class="row2">
-          <div>
-            <label for="abs">AbschNummer</label>
-            <input type="number" id="abs" min="0" max="255" placeholder="1">
-          </div>
-          <div>
-            <label for="vb">VerteilerBaustein</label>
-            <input type="number" id="vb" min="0" max="255" placeholder="1">
-          </div>
-        </div>
-        <label for="mqtt">MQTT Server (IP)</label>
-        <input type="text" id="mqtt" placeholder="10.1.0.5" autocomplete="off" spellcheck="false">
-        <div class="row2">
-          <div>
-            <label for="net1">Network Byte 1</label>
-            <input type="number" id="net1" min="0" max="255" placeholder="10">
-          </div>
-          <div>
-            <label for="net2">Network Byte 2</label>
-            <input type="number" id="net2" min="0" max="255" placeholder="1">
-          </div>
-        </div>
-        <div class="row2">
-          <div>
-            <label for="gw3">Gateway Byte 3</label>
-            <input type="number" id="gw3" min="0" max="255" placeholder="0">
-          </div>
-          <div>
-            <label for="gw4">Gateway Byte 4</label>
-            <input type="number" id="gw4" min="0" max="255" placeholder="1">
-          </div>
-        </div>
+    <div class="row2" style="margin-top: 0.85rem;">
+      <div>
+        <label for="abs">Section Number</label>
+        <input type="number" id="abs" min="0" max="255" placeholder="1">
       </div>
-    </details>
+      <div>
+        <label for="vb">Building Block Number</label>
+        <input type="number" id="vb" min="0" max="255" placeholder="1">
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label for="net1">Network Byte 1</label>
+        <input type="number" id="net1" min="0" max="255" placeholder="10">
+      </div>
+      <div>
+        <label for="net2">Network Byte 2</label>
+        <input type="number" id="net2" min="0" max="255" placeholder="1">
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label for="gw3">Gateway Byte 3</label>
+        <input type="number" id="gw3" min="0" max="255" placeholder="0">
+      </div>
+      <div>
+        <label for="gw4">Gateway Byte 4</label>
+        <input type="number" id="gw4" min="0" max="255" placeholder="1">
+      </div>
+    </div>
+    <div class="ip-preview">
+      <div class="ip-preview-row"><span class="ip-label">ESP-IP</span><span id="esp-ip">–</span></div>
+      <div class="ip-preview-row"><span class="ip-label">GW-IP</span><span id="gw-ip">–</span></div>
+    </div>
+    <label for="mqtt">MQTT Server (IP)</label>
+    <input type="text" id="mqtt" placeholder="10.1.0.5" autocomplete="off" spellcheck="false">
 
     <div class="btn-row">
       <button class="btn-primary" id="btn-connect">Connect &amp; Configure</button>
@@ -323,6 +316,34 @@
     if (!("serial" in navigator)) {
       document.getElementById("unsupported").classList.remove("hidden");
     }
+
+    // --- live IP preview ---
+    const ipInputs = ["abs", "vb", "net1", "net2", "gw3", "gw4"].map(id => document.getElementById(id));
+    const espIpEl = document.getElementById("esp-ip");
+    const gwIpEl  = document.getElementById("gw-ip");
+
+    function byte(id) {
+      const v = document.getElementById(id).value;
+      return v === "" ? "?" : v;
+    }
+
+    function updateIpPreview() {
+      espIpEl.textContent = `${byte("net1")}.${byte("net2")}.${byte("abs")}.${byte("vb")}`;
+      gwIpEl.textContent  = `${byte("net1")}.${byte("net2")}.${byte("gw3")}.${byte("gw4")}`;
+    }
+
+    // --- persist network/gateway bytes ---
+    const persistIds = ["net1", "net2", "gw3", "gw4", "mqtt"];
+
+    persistIds.forEach(id => {
+      const el = document.getElementById(id);
+      const saved = localStorage.getItem("ovb_" + id);
+      if (saved !== null) el.value = saved;
+      el.addEventListener("input", () => localStorage.setItem("ovb_" + id, el.value));
+    });
+
+    ipInputs.forEach(el => el.addEventListener("input", updateIpPreview));
+    updateIpPreview();
 
     // --- serial state ---
     let port = null;
