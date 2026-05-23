@@ -1,0 +1,33 @@
+#pragma once
+#include <stdint.h>
+#include <stdbool.h>
+
+#define SETTINGS_STR_LEN   64
+#define SETTINGS_TOPIC_LEN 64
+
+extern uint8_t AbschNummer;
+extern uint8_t VerteilerBaustein;
+
+extern char ssid[SETTINGS_STR_LEN];
+extern char password[SETTINGS_STR_LEN];
+extern char mqtt_server[SETTINGS_STR_LEN];
+extern char client_name[SETTINGS_STR_LEN];
+
+extern uint8_t networkByte1;
+extern uint8_t networkByte2;
+extern uint8_t gatewayByte3;
+extern uint8_t gatewayByte4;
+
+extern int AusSchaltZeitWeiche;
+
+extern bool TM_active[5];
+extern bool SM_active[5];
+extern bool WM_active[5];
+
+extern char MqttTMT[20][SETTINGS_TOPIC_LEN];
+extern char MqttSMS[8][SETTINGS_TOPIC_LEN];
+extern char MqttWMW[8][SETTINGS_TOPIC_LEN];
+
+void settings_load_from_nvs(void);
+void settings_save_to_nvs(void);
+void settings_save_wifi_to_nvs(void);
