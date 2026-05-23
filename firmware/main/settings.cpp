@@ -16,8 +16,8 @@ static const char *NVS_NS = "settings";
 uint8_t AbschNummer       = 1;
 uint8_t VerteilerBaustein = 1;
 
-char ssid[SETTINGS_STR_LEN]        = "otter";
-char password[SETTINGS_STR_LEN]    = "REMOVED";
+char ssid[SETTINGS_STR_LEN]        = "SSID";
+char password[SETTINGS_STR_LEN]    = "PASSWORD";
 char mqtt_server[SETTINGS_STR_LEN] = "10.1.0.5";
 char client_name[SETTINGS_STR_LEN] = "test_client";
 

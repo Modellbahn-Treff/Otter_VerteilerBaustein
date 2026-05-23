@@ -1,0 +1,59 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build firmware
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.1
+          target: esp32
+          path: firmware/
+          command: idf.py build
+
+      - name: Assemble deploy directory
+        run: |
+          mkdir -p deploy
+          cp -r web/* deploy/
+          cp firmware/build/otter_vb.bin deploy/
+          cp firmware/build/bootloader/bootloader.bin deploy/
+          cp firmware/build/partition_table/partition-table.bin deploy/
+
+      - name: Inject version into manifest
+        run: |
+          VERSION=$(git rev-parse --short HEAD)
+          jq --arg v "$VERSION" '.version = $v' web/manifest.json > deploy/manifest.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: deploy/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
