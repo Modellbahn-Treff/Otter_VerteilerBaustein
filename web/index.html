@@ -191,6 +191,12 @@
 
     .btn-secondary:hover { background: #30363d; }
 
+    #log-wrap {
+      width: 100%;
+      max-width: 960px;
+      padding: 0 1rem;
+    }
+
     #log {
       font-family: "SF Mono", "Fira Mono", monospace;
       font-size: 0.8rem;
@@ -203,7 +209,6 @@
       white-space: pre-wrap;
       word-break: break-all;
       color: #8b949e;
-      margin-top: 1rem;
     }
 
     .log-ok  { color: #3fb950; }
@@ -298,7 +303,9 @@
       <button class="btn-primary" id="btn-connect">Connect &amp; Configure</button>
       <button class="btn-secondary" id="btn-disconnect" class="hidden">Disconnect</button>
     </div>
+  </div>
 
+  <div id="log-wrap">
     <div id="log"></div>
   </div>
 
