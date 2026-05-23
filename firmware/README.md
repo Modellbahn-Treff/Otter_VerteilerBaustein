@@ -1,63 +1,65 @@
-# Otter VerteilerBaustein
+# Otter VerteilerBaustein — Firmware
 
-ESP32 firmware for the Otter model railroad control system. The VerteilerBaustein (distribution module) connects up to 5 modules and controls them via WiFi and MQTT.
+ESP32 firmware for the Otter model railroad control system. The VerteilerBaustein (distribution building block) connects up to 5 plug-in modules and controls them via WiFi and MQTT.
 
-## Supported module types (per slot)
+## Supported module types
 
-| Module | Channels | Controlled via MQTT |
-|--------|----------|---------------------|
-| **TM** – Button module | 4 per module (up to 20 total) | `MqttTMT[n]` topics |
-| **SM** – Signal module  | 2 per module (up to 8 total)  | `MqttSMS[n]` topics |
-| **WM** – Turnout module       | 2 per module (up to 8 total)  | `MqttWMW[n]` topics |
+Up to one module type may be active per slot (0–4). Enabling more than one type in the same slot is detected at startup and logged as a fatal error.
 
-Only one module type may be active per slot. A misconfiguration (more than one type active in the same slot) is detected at startup and logged as a fatal error.
+| Module | Channels | MQTT topics |
+|--------|----------|-------------|
+| **TM** – Button module  | 4 per module (up to 20 total) | `otter/TM/0` … `otter/TM/19` |
+| **SM** – Signal module  | 2 per module (up to 8 total)  | `otter/SM/0` … `otter/SM/7`  |
+| **WM** – Turnout module | 2 per module (up to 8 total)  | `otter/WM/0` … `otter/WM/7`  |
 
 ## Requirements
 
 - [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/latest/) v6.x
 - Target: ESP32
-- IDF components (fetched automatically by `idf.py`):
+- IDF components (resolved automatically via `idf_component.yml`):
   - `espressif/mqtt ^1.0.0`
   - `espressif/cjson >=1.0.0~1`
 
 ## Build & flash
 
 ```sh
-# Set up the IDF environment (adjust path to your installation)
+# Source the IDF environment (adjust path to your installation)
 . ~/esp/esp-idf/export.sh
 
-# First build — set the target
+# First-time setup — set the target chip
 idf.py set-target esp32
 
-# Build, flash and open the serial monitor
+# Build, flash, and open the serial monitor
 idf.py build flash monitor
 ```
 
 ## Configuration
 
-Settings are stored in NVS and can be changed at runtime via the **serial configuration console** (115200 baud). Defaults compiled into the firmware are defined in [main/settings.cpp](main/settings.cpp).
+Settings are persisted in NVS and can be changed at runtime via the **serial configuration console** (115200 baud). Compiled-in defaults are defined in [main/settings.cpp](main/settings.cpp).
 
 | Setting | Description |
 |---------|-------------|
 | `ssid` / `password` | WiFi credentials |
 | `mqtt_server` | MQTT broker IP address |
 | `client_name` | MQTT client ID |
-| `AbschNummer` / `VerteilerBaustein` | Last two octets of the static IP |
-| `networkByte1/2` | First two octets of the network |
-| `gatewayByte3/4` | Last two octets of the default gateway |
-| `TM_active[n]` / `SM_active[n]` / `WM_active[n]` | Enable module type per slot |
+| `AbschNummer` | Third octet of the static IP |
+| `VerteilerBaustein` | Fourth octet of the static IP |
+| `networkByte1` / `networkByte2` | First two octets of the network address |
+| `gatewayByte3` / `gatewayByte4` | Last two octets of the default gateway |
+| `AusSchaltZeitWeiche` | Turnout pulse-off delay in ms (default: 50) |
+| `TM_active[n]` / `SM_active[n]` / `WM_active[n]` | Enable a module type for slot *n* |
 
-The device uses a static IP: `networkByte1.networkByte2.AbschNummer.VerteilerBaustein`.
+Static IP format: `networkByte1.networkByte2.AbschNummer.VerteilerBaustein`
 
 ## Project structure
 
 ```
 main/
-├── main.cpp         – Entry point, WiFi & MQTT setup
-├── tm.cpp / tm.h    – Signal/output module logic
-├── sm.cpp / sm.h    – Switch/relay module logic
-├── wm.cpp / wm.h    – Turnout module logic
-├── settings.cpp/.h  – NVS-backed configuration
-├── serial_config.cpp/.h – Serial configuration console
-└── otter.cpp / otter.h  – Shared pin mapping & MQTT topic definitions
+├── main.cpp              – Entry point; WiFi & MQTT initialisation
+├── tm.cpp / tm.h         – Button module (TM) logic
+├── sm.cpp / sm.h         – Signal module (SM) logic
+├── wm.cpp / wm.h         – Turnout module (WM) logic
+├── settings.cpp / .h     – NVS-backed configuration store
+├── serial_config.cpp / .h – Serial configuration console
+└── otter.cpp / otter.h   – Shared pin mapping & MQTT topic definitions
 ```
