@@ -190,9 +190,9 @@ extern "C" void app_main() {
     setup_wifi();
     serial_config_start();
 
-    // Main loop — 10 ms tick
+    // Main loop — 1 ms tick
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(1));
 
         for (uint8_t i = 0; i < 5; i++) {
             if (TM_active[i] == 1) {
