@@ -26,7 +26,7 @@ uint8_t networkByte2 = 1;
 uint8_t gatewayByte3 = 0;
 uint8_t gatewayByte4 = 1;
 
-int AusSchaltZeitWeiche = 50;
+int AusSchaltZeitWeiche = 200;
 
 bool TM_active[5] = {false, false, false, false, true};
 bool SM_active[5] = {true, true, false, false, false};
