@@ -28,9 +28,9 @@ uint8_t gatewayByte4 = 1;
 
 int AusSchaltZeitWeiche = 50;
 
-bool TM_active[5] = {false, false, false, false, false};
-bool SM_active[5] = {false, false, false, false, false};
-bool WM_active[5] = {false, false, false, false, false};
+bool TM_active[5] = {false, false, false, false, true};
+bool SM_active[5] = {true, true, false, false, false};
+bool WM_active[5] = {false, false, true, true, false};
 
 char MqttTMT[20][SETTINGS_TOPIC_LEN] = {
     "otter/TM/0",  "otter/TM/1",  "otter/TM/2",  "otter/TM/3",
