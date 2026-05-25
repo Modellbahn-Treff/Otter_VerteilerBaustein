@@ -192,7 +192,7 @@ extern "C" void app_main() {
 
     // Main loop — 1 ms tick
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(1));
+        vTaskDelay(pdMS_TO_TICKS(10));
 
         for (uint8_t i = 0; i < 5; i++) {
             if (TM_active[i] == 1) {
