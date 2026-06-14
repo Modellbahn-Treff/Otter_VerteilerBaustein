@@ -159,7 +159,7 @@ void settings_load_from_nvs(void) {
 // NVS save — all non-WiFi settings
 // ---------------------------------------------------------------------------
 
-void settings_save_to_nvs(void) {
+bool settings_save_to_nvs(void) {
     nvs_handle_t h;
     ESP_ERROR_CHECK(nvs_open(NVS_NS, NVS_READWRITE, &h));
 
@@ -184,21 +184,31 @@ void settings_save_to_nvs(void) {
     str_array_to_json_str(MqttWMW,  8, big, sizeof(big)); nvs_set_str(h, "mqtt_wmw", big);
     nvs_set_str(h, "mqtt_set", MqttSet);
 
-    nvs_commit(h);
+    esp_err_t err = nvs_commit(h);
     nvs_close(h);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "NVS commit failed: %s", esp_err_to_name(err));
+        return false;
+    }
     ESP_LOGI(TAG, "Settings saved to NVS");
+    return true;
 }
 
 // ---------------------------------------------------------------------------
 // Apply JSON blob to settings and persist — used by serial 'set' and MQTT
 // ---------------------------------------------------------------------------
 
-bool settings_apply_json(const char *json_str) {
+settings_result_t settings_apply_json(const char *json_str, char *tx_out, size_t tx_out_len) {
+    if (tx_out && tx_out_len > 0) tx_out[0] = '\0';
+
     cJSON *root = cJSON_Parse(json_str);
-    if (!root) return false;
+    if (!root) return SETTINGS_ERR_JSON;
 
     cJSON *item;
     cJSON *arr;
+
+    if (tx_out && (item = cJSON_GetObjectItem(root, "tx")) && cJSON_IsString(item))
+        snprintf(tx_out, tx_out_len, "%s", item->valuestring);
 
     if ((item = cJSON_GetObjectItem(root, "AbschNummer"))         && cJSON_IsNumber(item)) AbschNummer         = (uint8_t)item->valueint;
     if ((item = cJSON_GetObjectItem(root, "VerteilerBaustein"))   && cJSON_IsNumber(item)) VerteilerBaustein   = (uint8_t)item->valueint;
@@ -255,18 +265,13 @@ bool settings_apply_json(const char *json_str) {
         }
     }
 
-    bool do_reboot = false;
-    if ((item = cJSON_GetObjectItem(root, "reboot")) && cJSON_IsTrue(item)) do_reboot = true;
+    bool do_reboot = (item = cJSON_GetObjectItem(root, "reboot")) && cJSON_IsTrue(item);
 
     cJSON_Delete(root);
-    settings_save_to_nvs();
 
-    if (do_reboot) {
-        ESP_LOGI(TAG, "Reboot requested via MQTT");
-        esp_restart();
-    }
+    if (!settings_save_to_nvs()) return SETTINGS_ERR_NVS;
 
-    return true;
+    return do_reboot ? SETTINGS_OK_REBOOT : SETTINGS_OK;
 }
 
 // ---------------------------------------------------------------------------

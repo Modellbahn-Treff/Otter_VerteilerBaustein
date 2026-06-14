@@ -86,11 +86,15 @@ static void cmd_get(void) {
 // ---------------------------------------------------------------------------
 
 static void cmd_set(const char *json_str) {
-    if (!settings_apply_json(json_str)) {
+    char tx[64];
+    settings_result_t result = settings_apply_json(json_str, tx, sizeof(tx));
+    if (result == SETTINGS_ERR_JSON) {
         uart_println("ERROR: JSON parse failed");
-        return;
+    } else if (result == SETTINGS_ERR_NVS) {
+        uart_println("ERROR: EEPROM write failed");
+    } else {
+        uart_println("OK: Settings saved. Restart to apply.");
     }
-    uart_println("OK: Settings saved. Restart to apply.");
 }
 
 // ---------------------------------------------------------------------------

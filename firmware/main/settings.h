@@ -29,7 +29,14 @@ extern char MqttSMS[8][SETTINGS_TOPIC_LEN];
 extern char MqttWMW[8][SETTINGS_TOPIC_LEN];
 extern char MqttSet[SETTINGS_TOPIC_LEN];
 
+typedef enum {
+    SETTINGS_OK,
+    SETTINGS_OK_REBOOT,
+    SETTINGS_ERR_JSON,
+    SETTINGS_ERR_NVS,
+} settings_result_t;
+
 void settings_load_from_nvs(void);
-void settings_save_to_nvs(void);
+bool settings_save_to_nvs(void);
 void settings_save_wifi_to_nvs(void);
-bool settings_apply_json(const char *json_str);
+settings_result_t settings_apply_json(const char *json_str, char *tx_out, size_t tx_out_len);

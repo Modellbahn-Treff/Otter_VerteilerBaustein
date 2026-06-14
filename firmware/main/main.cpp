@@ -60,8 +60,27 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
             }
             if (strcmp(topic, MqttSet) == 0) {
                 ESP_LOGI(TAG, "Settings update via MQTT");
-                if (!settings_apply_json(msg)) {
+                char tx[64];
+                settings_result_t result = settings_apply_json(msg, tx, sizeof(tx));
+
+                char ack_topic[SETTINGS_TOPIC_LEN + 5];
+                snprintf(ack_topic, sizeof(ack_topic), "%s/ack", MqttSet);
+
+                char ack_payload[160];
+                if (result == SETTINGS_OK || result == SETTINGS_OK_REBOOT) {
+                    snprintf(ack_payload, sizeof(ack_payload), "{\"tx\":\"%s\"}", tx);
+                } else if (result == SETTINGS_ERR_NVS) {
+                    ESP_LOGE(TAG, "Settings update failed: NVS write error");
+                    snprintf(ack_payload, sizeof(ack_payload), "{\"tx\":\"%s\",\"error\":\"EEPROM write failed\"}", tx);
+                } else {
                     ESP_LOGE(TAG, "Settings update failed: JSON parse error");
+                    snprintf(ack_payload, sizeof(ack_payload), "{\"tx\":\"%s\",\"error\":\"JSON parse error\"}", tx);
+                }
+                esp_mqtt_client_publish(mqtt_client, ack_topic, ack_payload, 0, 0, 0);
+
+                if (result == SETTINGS_OK_REBOOT) {
+                    ESP_LOGI(TAG, "Reboot requested via MQTT");
+                    esp_restart();
                 }
             }
             for (uint8_t i = 0; i < 8; i++) {
