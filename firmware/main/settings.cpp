@@ -3,6 +3,7 @@
 #include "nvs.h"
 #include "cJSON.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -254,8 +255,17 @@ bool settings_apply_json(const char *json_str) {
         }
     }
 
+    bool do_reboot = false;
+    if ((item = cJSON_GetObjectItem(root, "reboot")) && cJSON_IsTrue(item)) do_reboot = true;
+
     cJSON_Delete(root);
     settings_save_to_nvs();
+
+    if (do_reboot) {
+        ESP_LOGI(TAG, "Reboot requested via MQTT");
+        esp_restart();
+    }
+
     return true;
 }
 
