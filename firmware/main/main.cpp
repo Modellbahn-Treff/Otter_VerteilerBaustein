@@ -76,7 +76,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
                     ESP_LOGE(TAG, "Settings update failed: JSON parse error");
                     snprintf(ack_payload, sizeof(ack_payload), "{\"tx\":\"%s\",\"error\":\"JSON parse error\"}", tx);
                 }
-                esp_mqtt_client_publish(mqtt_client, ack_topic, ack_payload, 0, 0, 0);
+                esp_mqtt_client_enqueue(mqtt_client, ack_topic, ack_payload, 0, 0, 0, true);
 
                 if (result == SETTINGS_OK_REBOOT) {
                     ESP_LOGI(TAG, "Reboot requested via MQTT");
