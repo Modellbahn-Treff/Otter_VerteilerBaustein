@@ -87,6 +87,7 @@ static void setup_mqtt() {
     esp_mqtt_client_config_t mqtt_cfg = {};
     mqtt_cfg.broker.address.uri       = uri;
     mqtt_cfg.credentials.client_id    = client_name;
+    mqtt_cfg.buffer.size              = 2048;
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(mqtt_client,
