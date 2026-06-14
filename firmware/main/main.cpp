@@ -77,10 +77,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
                     snprintf(ack_payload, sizeof(ack_payload), "{\"tx\":\"%s\",\"error\":\"JSON parse error\"}", tx);
                 }
                 esp_mqtt_client_enqueue(mqtt_client, ack_topic, ack_payload, 0, 0, 0, true);
-
                 if (result == SETTINGS_OK_REBOOT) {
                     ESP_LOGI(TAG, "Reboot requested via MQTT");
-                    esp_restart();
+                    xTaskCreate([](void *) {
+                        vTaskDelay(pdMS_TO_TICKS(500));
+                        esp_restart();
+                    }, "reboot", 2048, nullptr, 5, nullptr);
                 }
             }
             for (uint8_t i = 0; i < 8; i++) {
