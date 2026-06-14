@@ -73,6 +73,8 @@ static void cmd_get(void) {
     for (int i = 0; i < 8; i++) cJSON_AddItemToArray(wmw, cJSON_CreateString(MqttWMW[i]));
     cJSON_AddItemToObject(root, "MqttWMW", wmw);
 
+    cJSON_AddStringToObject(root, "MqttSet", MqttSet);
+
     char *s = cJSON_Print(root);
     uart_println(s);
     cJSON_free(s);
@@ -84,72 +86,10 @@ static void cmd_get(void) {
 // ---------------------------------------------------------------------------
 
 static void cmd_set(const char *json_str) {
-    cJSON *root = cJSON_Parse(json_str);
-    if (!root) {
+    if (!settings_apply_json(json_str)) {
         uart_println("ERROR: JSON parse failed");
         return;
     }
-
-    cJSON *item;
-
-    if ((item = cJSON_GetObjectItem(root, "AbschNummer"))       && cJSON_IsNumber(item)) AbschNummer       = (uint8_t)item->valueint;
-    if ((item = cJSON_GetObjectItem(root, "VerteilerBaustein")) && cJSON_IsNumber(item)) VerteilerBaustein = (uint8_t)item->valueint;
-    if ((item = cJSON_GetObjectItem(root, "networkByte1"))      && cJSON_IsNumber(item)) networkByte1      = (uint8_t)item->valueint;
-    if ((item = cJSON_GetObjectItem(root, "networkByte2"))      && cJSON_IsNumber(item)) networkByte2      = (uint8_t)item->valueint;
-    if ((item = cJSON_GetObjectItem(root, "gatewayByte3"))      && cJSON_IsNumber(item)) gatewayByte3      = (uint8_t)item->valueint;
-    if ((item = cJSON_GetObjectItem(root, "gatewayByte4"))      && cJSON_IsNumber(item)) gatewayByte4      = (uint8_t)item->valueint;
-    if ((item = cJSON_GetObjectItem(root, "AusSchaltZeitWeiche")) && cJSON_IsNumber(item)) AusSchaltZeitWeiche = item->valueint;
-
-    if ((item = cJSON_GetObjectItem(root, "mqtt_server"))  && cJSON_IsString(item)) snprintf(mqtt_server, SETTINGS_STR_LEN, "%s", item->valuestring);
-    if ((item = cJSON_GetObjectItem(root, "client_name"))  && cJSON_IsString(item)) snprintf(client_name, SETTINGS_STR_LEN, "%s", item->valuestring);
-
-    cJSON *arr;
-    if ((arr = cJSON_GetObjectItem(root, "TM_active")) && cJSON_IsArray(arr)) {
-        int n = cJSON_GetArraySize(arr);
-        for (int i = 0; i < 5 && i < n; i++) {
-            cJSON *el = cJSON_GetArrayItem(arr, i);
-            if (cJSON_IsBool(el)) TM_active[i] = cJSON_IsTrue(el);
-        }
-    }
-    if ((arr = cJSON_GetObjectItem(root, "SM_active")) && cJSON_IsArray(arr)) {
-        int n = cJSON_GetArraySize(arr);
-        for (int i = 0; i < 5 && i < n; i++) {
-            cJSON *el = cJSON_GetArrayItem(arr, i);
-            if (cJSON_IsBool(el)) SM_active[i] = cJSON_IsTrue(el);
-        }
-    }
-    if ((arr = cJSON_GetObjectItem(root, "WM_active")) && cJSON_IsArray(arr)) {
-        int n = cJSON_GetArraySize(arr);
-        for (int i = 0; i < 5 && i < n; i++) {
-            cJSON *el = cJSON_GetArrayItem(arr, i);
-            if (cJSON_IsBool(el)) WM_active[i] = cJSON_IsTrue(el);
-        }
-    }
-
-    if ((arr = cJSON_GetObjectItem(root, "MqttTMT")) && cJSON_IsArray(arr)) {
-        int n = cJSON_GetArraySize(arr);
-        for (int i = 0; i < 20 && i < n; i++) {
-            cJSON *el = cJSON_GetArrayItem(arr, i);
-            if (cJSON_IsString(el)) snprintf(MqttTMT[i], SETTINGS_TOPIC_LEN, "%s", el->valuestring);
-        }
-    }
-    if ((arr = cJSON_GetObjectItem(root, "MqttSMS")) && cJSON_IsArray(arr)) {
-        int n = cJSON_GetArraySize(arr);
-        for (int i = 0; i < 8 && i < n; i++) {
-            cJSON *el = cJSON_GetArrayItem(arr, i);
-            if (cJSON_IsString(el)) snprintf(MqttSMS[i], SETTINGS_TOPIC_LEN, "%s", el->valuestring);
-        }
-    }
-    if ((arr = cJSON_GetObjectItem(root, "MqttWMW")) && cJSON_IsArray(arr)) {
-        int n = cJSON_GetArraySize(arr);
-        for (int i = 0; i < 8 && i < n; i++) {
-            cJSON *el = cJSON_GetArrayItem(arr, i);
-            if (cJSON_IsString(el)) snprintf(MqttWMW[i], SETTINGS_TOPIC_LEN, "%s", el->valuestring);
-        }
-    }
-
-    cJSON_Delete(root);
-    settings_save_to_nvs();
     uart_println("OK: Settings saved. Restart to apply.");
 }
 
@@ -220,6 +160,7 @@ static void cmd_help(void) {
     uart_println("  AusSchaltZeitWeiche");
     uart_println("  TM_active, SM_active, WM_active  (array of 5 booleans)");
     uart_println("  MqttTMT (array of 20 strings), MqttSMS, MqttWMW (array of 8 strings)");
+    uart_println("  MqttSet  (topic for writing settings via MQTT, default: otter/Set)");
 }
 
 // ---------------------------------------------------------------------------

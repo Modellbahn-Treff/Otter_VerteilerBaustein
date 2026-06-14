@@ -32,6 +32,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "MQTT connected");
             esp_mqtt_client_subscribe(mqtt_client, MqttRefresh, 0);
+            esp_mqtt_client_subscribe(mqtt_client, MqttSet, 0);
             for (uint8_t i = 0; i < 8; i++) {
                 esp_mqtt_client_subscribe(mqtt_client, MqttSMS[i], 0);
                 esp_mqtt_client_subscribe(mqtt_client, MqttWMW[i], 0);
@@ -56,6 +57,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base,
             if (strcmp(topic, MqttRefresh) == 0) {
                 ESP_LOGI(TAG, "Refresh angefragt");
                 TM_Refresh(0);
+            }
+            if (strcmp(topic, MqttSet) == 0) {
+                ESP_LOGI(TAG, "Settings update via MQTT");
+                if (!settings_apply_json(msg)) {
+                    ESP_LOGE(TAG, "Settings update failed: JSON parse error");
+                }
             }
             for (uint8_t i = 0; i < 8; i++) {
                 if (strcmp(topic, MqttSMS[i]) == 0) {
