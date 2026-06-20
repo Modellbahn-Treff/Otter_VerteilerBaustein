@@ -2,21 +2,22 @@ name: Build and Deploy
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    tags:
+      - '*'
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,6 +30,17 @@ jobs:
           path: firmware/
           command: idf.py build
 
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          fi
+
       - name: Assemble deploy directory
         run: |
           mkdir -p deploy
@@ -39,21 +51,84 @@ jobs:
 
       - name: Inject version into manifest
         run: |
-          VERSION=$(git rev-parse --short HEAD)
-          jq --arg v "$VERSION" '.version = $v' web/manifest.json > deploy/manifest.json
+          jq --arg v "${{ steps.version.outputs.version }}" '.version = $v' web/manifest.json > deploy/manifest.json
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
         with:
+          name: deploy
           path: deploy/
 
-  deploy:
+  deploy-dev:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    if: github.ref_type == 'branch'
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: true
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy
+          path: deploy/
+
+      - name: Deploy to flash/dev
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: deploy/
+          destination_dir: flash/dev
+          keep_files: true
+
+  deploy-tag:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && github.event_name != 'release'
+    concurrency:
+      group: deploy-tag-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy
+          path: deploy/
+
+      - name: Deploy to flash/${{ github.ref_name }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: deploy/
+          destination_dir: flash/${{ github.ref_name }}
+          keep_files: true
+
+  deploy-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.release.prerelease == false
+    concurrency:
+      group: deploy-release
+      cancel-in-progress: false
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy
+          path: deploy/
+
+      - name: Deploy to flash/${{ github.event.release.tag_name }}
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: deploy/
+          destination_dir: flash/${{ github.event.release.tag_name }}
+          keep_files: true
+
+      - name: Deploy to flash (latest release)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: deploy/
+          destination_dir: flash
+          keep_files: true
