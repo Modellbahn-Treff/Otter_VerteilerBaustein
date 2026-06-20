@@ -1,6 +1,6 @@
 {
   "name": "Otter VerteilerBaustein",
-  "version": "bf7afc8",
+  "version": "e548e3d",
   "builds": [
     {
       "chipFamily": "ESP32",
