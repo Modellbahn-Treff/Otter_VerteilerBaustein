@@ -64,8 +64,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_type == 'branch'
     concurrency:
-      group: deploy-dev
-      cancel-in-progress: true
+      group: deploy-gh-pages
+      cancel-in-progress: false
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag' && github.event_name != 'release'
     concurrency:
-      group: deploy-tag-${{ github.ref_name }}
+      group: deploy-gh-pages
       cancel-in-progress: false
     steps:
       - name: Download build artifact
@@ -108,27 +108,40 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release' && github.event.release.prerelease == false
     concurrency:
-      group: deploy-release
+      group: deploy-gh-pages
       cancel-in-progress: false
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: deploy
           path: deploy/
 
-      - name: Deploy to flash/${{ github.event.release.tag_name }}
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: deploy/
-          destination_dir: flash/${{ github.event.release.tag_name }}
-          keep_files: true
+      - name: Deploy to flash/<tag> and flash/ in one push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Deploy to flash (latest release)
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: deploy/
-          destination_dir: flash
-          keep_files: true
+          if git ls-remote --exit-code --heads origin gh-pages > /dev/null 2>&1; then
+            git fetch origin gh-pages
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . > /dev/null 2>&1 || true
+          fi
+
+          mkdir -p "flash/${TAG}"
+          rsync -a --delete "${GITHUB_WORKSPACE}/deploy/" "flash/${TAG}/"
+          rsync -a "${GITHUB_WORKSPACE}/deploy/" flash/
+
+          git add .
+          git diff --staged --quiet || git commit -m "Deploy release ${TAG}"
+          git push origin gh-pages
