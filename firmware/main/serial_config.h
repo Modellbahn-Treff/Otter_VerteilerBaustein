@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Modellbahn-Treff for Kids GmbH
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #pragma once
 
 // Start the Serial configuration console task.

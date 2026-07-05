@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Modellbahn-Treff for Kids GmbH
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "driver/gpio.h"
 #include "tm.h"
 #include "otter.h"

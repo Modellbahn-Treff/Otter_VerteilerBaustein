@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Modellbahn-Treff for Kids GmbH
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
